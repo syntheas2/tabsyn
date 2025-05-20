@@ -21,7 +21,7 @@ import tempfile # For temporary file handling
 from tabsyn.vae.model import Model_VAE , Encoder_model, Decoder_model
 from tabsyn.vae.main import compute_loss # Assuming this is your loss function
 from utils_train import TabularDataset # Ensure this is findable
-from steps.train_vae_args import VAEArgs # Your configuration class
+from pipelines.train_vae_args import VAEArgs # Your configuration class
 
 logger = get_logger(__name__) # Use ZenML's logger for the step
 
@@ -96,7 +96,6 @@ def train_evaluate_vae(
     beta = config.max_beta
     
     manual_checkpoint_subdir = "manual_model_checkpoints" # Define consistently
-    manual_bestmodel_subdir = "manual_model_best" # Define consistently
     best_model_data_to_save = None
 
     if config.load_from_checkpoint:
@@ -239,13 +238,6 @@ def train_evaluate_vae(
             best_val_loss = current_val_loss
             current_patience = 0
             
-            # 2. Prepare and save the new best model artifact
-            # The filename for the artifact can be consistent or include epoch/loss for clarity
-            # Using a consistent name simplifies finding "the" best model.
-            # If you want to include epoch/loss, the deletion logic still ensures only one remains.
-            best_model_artifact_filename = f"best_model_epoch_{epoch:04d}_loss_{current_val_loss:.4f}.pt"
-            
-            # Option B: Save only model.state_dict() and relevant metadata (more typical for "best model")
             best_model_data_to_save = {
                 'epoch': epoch,
                 'model_state_dict': model.state_dict(),

@@ -8,7 +8,7 @@ import mlflow
 from pathlib import Path
 
 from tabsyn.vae.model import Model_VAE, Encoder_model, Decoder_model # Ensure these are importable
-from steps.train_vae_args import VAEArgs
+from pipelines.train_vae_args import VAEArgs
 
 logger = get_logger(__name__)
 

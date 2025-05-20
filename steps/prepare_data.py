@@ -6,7 +6,7 @@ from zenml import step
 from zenml.logger import get_logger
 import mlflow
 
-from steps.train_vae_args import VAEArgs # Assuming config.py is in the same directory or PYTHONPATH
+from pipelines.train_vae_args import VAEArgs # Assuming config.py is in the same directory or PYTHONPATH
 
 logger = get_logger(__name__)
 

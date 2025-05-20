@@ -7,7 +7,7 @@ from steps.load_data import load_data_step
 from steps.prepare_data import prepare_pytorch_data
 from steps.train_vae import train_evaluate_vae
 from steps.generate_final_artifacts import generate_final_artifacts
-from steps.train_vae_args import VAEArgs
+from pipelines.train_vae_args import VAEArgs
 
 
 @pipeline

@@ -27,7 +27,7 @@ class VAEArgs(BaseModel):
 
     # MLflow
     mlflow_experiment_name: str = "VAE_Training_Experiment"
-    load_ckp_from_run_id: str = "7bfc89ec14394f9f9545e79ef024ad0e"
+    load_ckp_from_run_id: str = "e422543b2b2d40ae8cb4c7987d92ffc7"
     load_from_checkpoint: bool = True
     max_checkpoints_to_keep: int = 5
     checkpoint_save_interval: int = 20
