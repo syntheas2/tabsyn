@@ -14,7 +14,6 @@ import torch
 
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-import time
 
 from tqdm import tqdm
 from tabsyn.model import MLPDiffusion, Model
@@ -23,7 +22,7 @@ from tabsyn.model import MLPDiffusion, Model
 from tabsyn.vae.main import compute_loss # Assuming this is your loss function
 from utils_train import TabularDataset # Ensure this is findable
 from pipelines.train_diffusion_args import DiffusionArgs # Your configuration class
-from pythelpers.ml.mlflow import load_latest_checkpoint_from_mlflow, rotate_checkpoints
+from pythelpers.ml.mlflow import load_latest_checkpoint_from_mlflow, rotate_checkpoints, rotate_bestmodels
 
 logger = get_logger(__name__) # Use ZenML's logger for the step
 
@@ -93,17 +92,16 @@ def train_evaluate_diffusion(
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=config.weight_decay)
     scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=config.scheduler_factor, patience=config.scheduler_patience)
 
-    manual_checkpoint_subdir = "manual_model_checkpoints" # Define consistently
     best_model_data_to_save = None
     best_loss = float('inf')  # Initialize best_loss if no checkpoint exists    
-
+    start_epoch = 0
     if config.load_from_checkpoint:
         ckp_run_id = config.load_ckp_from_run_id
         if ckp_run_id:
-            logger.info(f"Attempting to load checkpoint from MLflow run '{ckp_run_id}', subdir '{manual_checkpoint_subdir}'...")
+            logger.info(f"Attempting to load checkpoint from MLflow run '{ckp_run_id}', subdir '{config.manual_checkpoint_subdir}'...")
             checkpoint_data = load_latest_checkpoint_from_mlflow(
                 run_id=ckp_run_id,
-                artifact_subdir=manual_checkpoint_subdir,
+                artifact_subdir=config.manual_checkpoint_subdir,
                 model=model,
                 optimizer=optimizer,
                 scheduler=scheduler,
@@ -147,9 +145,10 @@ def train_evaluate_diffusion(
         else:
             logger.warning("MLflow run ID not available, cannot attempt to load checkpoint.")
 
+    old_best_loss = best_loss
     model.train()
     start_time = time.time()
-    for epoch in range(num_epochs):
+    for epoch in range(start_epoch, num_epochs):
         
         pbar = tqdm(train_loader, total=len(train_loader))
         pbar.set_description(f"Epoch {epoch+1}/{num_epochs}")
@@ -223,16 +222,37 @@ def train_evaluate_diffusion(
                 
                 mlflow.log_artifact(
                     str(local_tmp_checkpoint_path), 
-                    artifact_path=f"{manual_checkpoint_subdir}" 
+                    artifact_path=f"{config.manual_checkpoint_subdir}" 
                 )
-            logger.info(f"Saved manual checkpoint to MLflow: {manual_checkpoint_subdir}")
-
             # --- Checkpoint Rotation ---
             rotate_checkpoints(
                 run_id=run_id,
-                artifact_subdir=manual_checkpoint_subdir,
+                artifact_subdir=config.manual_checkpoint_subdir,
                 max_checkpoints=config.max_checkpoints_to_keep
             )
+            logger.info(f"Saved manual checkpoint to MLflow: {config.manual_checkpoint_subdir}")
+
+            if old_best_loss > best_loss:
+                bestmodel_filename = f"model_loss_{best_loss:.3f}.pt" # Padded epoch for sorting
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    local_tmp_checkpoint_path = Path(tmpdir) / bestmodel_filename
+                    torch.save(checkpoint_state, local_tmp_checkpoint_path)
+                    
+                    mlflow.log_artifact(
+                        str(local_tmp_checkpoint_path), 
+                        artifact_path=f"{config.manual_bestmodel_subdir}",
+                        run_id=config.bestmodels_runid 
+                    )
+                            # --- Checkpoint Rotation ---
+                rotate_bestmodels(
+                    run_id=config.bestmodels_runid,
+                    metric='loss',
+                    artifact_subdir=config.manual_bestmodel_subdir,
+                    max=config.max_checkpoints_to_keep
+                )
+                logger.info(f"Saved manual best model to MLflow: {config.manual_bestmodel_subdir}")
+                old_best_loss = best_loss
+
 
     end_time = time.time()
     logger.info('Time: ', end_time - start_time)

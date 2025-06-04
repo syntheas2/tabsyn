@@ -1,7 +1,7 @@
 import numpy as np
 import os
 
-import src
+import src._init as _init
 from torch.utils.data import Dataset
 
 
@@ -32,7 +32,7 @@ def preprocess(dataset_path, task_type = 'binclass', inverse = False, cat_encodi
     T_dict['cat_encoding'] = cat_encoding
     T_dict['y_policy'] = "default"
 
-    T = src.Transformations(**T_dict)
+    T = _init.Transformations(**T_dict)
 
     dataset = make_dataset(
         data_path = dataset_path,
@@ -49,7 +49,7 @@ def preprocess(dataset_path, task_type = 'binclass', inverse = False, cat_encodi
         X_train_num, X_test_num = X_num['train'], X_num['test']
         X_train_cat, X_test_cat = X_cat['train'], X_cat['test']
         
-        categories = src.get_categories(X_train_cat)
+        categories = _init.get_categories(X_train_cat)
         d_numerical = X_train_num.shape[1]
 
         X_num = (X_train_num, X_test_num)
@@ -220,7 +220,7 @@ def concat_y_to_X(X, y):
 
 def make_dataset(
     data_path: str,
-    T: src.Transformations,
+    T: _init.Transformations,
     task_type,
     change_val: bool,
     concat = True,
@@ -233,7 +233,7 @@ def make_dataset(
         y = {} if os.path.exists(os.path.join(data_path, 'y_train.npy')) else None
 
         for split in ['train', 'test']:
-            X_num_t, X_cat_t, y_t = src.read_pure_data(data_path, split)
+            X_num_t, X_cat_t, y_t = _init.read_pure_data(data_path, split)
             if X_num is not None:
                 X_num[split] = X_num_t
             if X_cat is not None:
@@ -249,7 +249,7 @@ def make_dataset(
         y = {} if os.path.exists(os.path.join(data_path, 'y_train.npy')) else None
 
         for split in ['train', 'test']:
-            X_num_t, X_cat_t, y_t = src.read_pure_data(data_path, split)
+            X_num_t, X_cat_t, y_t = _init.read_pure_data(data_path, split)
 
             if X_num is not None:
                 if concat:
@@ -260,19 +260,19 @@ def make_dataset(
             if y is not None:
                 y[split] = y_t
 
-    info = src.load_json(os.path.join(data_path, 'info.json'))
+    info = _init.load_json(os.path.join(data_path, 'info.json'))
 
-    D = src.Dataset(
+    D = _init.Dataset(
         X_num,
         X_cat,
         y,
         y_info={},
-        task_type=src.TaskType(info['task_type']),
+        task_type=_init.TaskType(info['task_type']),
         n_classes=info.get('n_classes')
     )
 
     if change_val:
-        D = src.change_val(D)
+        D = _init.change_val(D)
 
     # def categorical_to_idx(feature):
     #     unique_categories = np.unique(feature)
@@ -283,4 +283,4 @@ def make_dataset(
     # for split in ['train', 'val', 'test']:
     # D.y[split] = categorical_to_idx(D.y[split].squeeze(1))
 
-    return src.transform_dataset(D, T, None)
+    return _init.transform_dataset(D, T, None)

@@ -3,14 +3,14 @@ from zenml import pipeline
 import mlflow  # Import the mlflow library
 from datetime import datetime # For the run description
 import torch
-from steps.load_data4diffusion import load_data4diffusion_step
-from steps.train_diffusion import train_evaluate_diffusion
-from pipelines.train_diffusion_args import DiffusionArgs
+from steps.sample_load_data import sample_load_data_step
+from steps.sample import sample_step
+from pipelines.sample_args import SampleArgs
 
 
 @pipeline
-def train_diffusion_pipeline():
-    args = DiffusionArgs()
+def sample_pipeline():
+    args = SampleArgs()
 
     # --- Set the MLflow run name using a tag ---
     now = datetime.now() # Use current time for uniqueness
@@ -23,16 +23,21 @@ def train_diffusion_pipeline():
     else:
         args.device = 'cpu'
 
-    train_z = load_data4diffusion_step()
+    train_z, pre_decoder, column_metadata, num_inverse, cat_inverse, model_diffusion_state_dict = sample_load_data_step(args)
 
     # Step 2: Train and evaluate the VAE model
-    return train_evaluate_diffusion(
+    return sample_step(
+        args=args,
         train_z=train_z,
-        config=args
+        pre_decoder=pre_decoder,
+        column_metadata=column_metadata,
+        num_inverse=num_inverse,
+        cat_inverse=cat_inverse,
+        model_diffusion_state_dict=model_diffusion_state_dict
     )
 
 
 if __name__ == "__main__":
-    train_diffusion_pipeline.with_options(
+    sample_pipeline.with_options(
         enable_cache=False  
     )()
