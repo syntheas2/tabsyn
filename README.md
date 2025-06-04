@@ -1,3 +1,17 @@
+# Installation
+
+```bash
+pip install tabsyn_zenml
+```
+
+Or install from source:
+
+```bash
+git clone https://github.com/yourusername/pythelpers.git
+cd pythelpers
+pip install -e .
+```
+
 # Schrittweise Erklärung des Diffusionsmodells in TabSyn
 
 ## 1. Vorbereitungsschritt: VAE für latente Repräsentation
